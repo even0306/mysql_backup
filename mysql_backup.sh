@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # editer: even
-# version: 1.0.1 release
+# version: 1.0.2 release
 
 # 修改需要备份的所有库名(空格分隔，库名包在单引号内)
 db_name=('mysql')
@@ -98,11 +98,11 @@ del(){
 	if [ ${remote_backup} == 1 ];then
 		ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "uname -a"
 		if [ $? == 0 ];then
-			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "find $db_per_day_savePath/dbBackup/$dbname/dbBackupPerDay/ -mtime +$d -type f -name $dbname*.sql.gz -delete"
-			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "find $db_per_day_savePath/dbBackup/$dbname/dbBackupPerDay/ -mtime +$d -type f -name '$dbname*.sql.gz'" | grep gz
+			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "find $db_per_day_savePath/dbBackup/$dbname/dbBackupPerDay/ -mtime +$d -type f -name $dbname*.sql.gz -delete" 2>> $db_logs/logs/mysql_backup_failed.log
+			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "find $db_per_day_savePath/dbBackup/$dbname/dbBackupPerDay/ -mtime +$d -type f -name '$dbname*.sql.gz'" 2>> $db_logs/logs/mysql_backup_failed.log
 		else
-			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "(Get-ChildItem -path ${remote_path} -filter $dbname*.sql.gz|where {\$_.LastWriteTime -le (get-date).adddays($(expr 0 - ${rmDay} - 1)) -and \$_ -is [System.IO.FileInfo]}).fullname|Remove-Item"
-			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "((Get-ChildItem ${remote_path} -filter $dbname*.sql.gz).LastWriteTime).AddDays($(expr 0 - ${rmDay} - 1))"
+			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "(Get-ChildItem -path ${remote_path} -filter $dbname*.sql.gz|where {\$_.LastWriteTime -le (get-date).adddays($(expr 0 - ${rmDay} - 1)) -and \$_ -is [System.IO.FileInfo]}).fullname|Remove-Item" 2>> $db_logs/logs/mysql_backup_failed.log
+			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "((Get-ChildItem ${remote_path} -filter $dbname*.sql.gz).LastWriteTime).AddDays($(expr 0 - ${rmDay} - 1))" 2>> $db_logs/logs/mysql_backup_failed.log
 		fi
 
 		if [ $? == 0 ]; then
