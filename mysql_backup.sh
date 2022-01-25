@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # editer: even
-# version: 1.0 release
+# version: 1.0.1 release
 
 # 修改需要备份的所有库名(空格分隔，库名包在单引号内)
 db_name=('mysql')
@@ -61,10 +61,10 @@ main(){
 			if [ ${remote_backup} == 1 ]; then
 				sendToOther
 			fi
-			echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname backup success" | tee $db_logs/logs/mysql_backup_access.log
+			echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname backup success" | tee -a $db_logs/logs/mysql_backup_access.log
 			del
 		else
-			echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname backup failed" | tee $db_logs/logs/mysql_backup_failed.log
+			echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname backup failed" | tee -a $db_logs/logs/mysql_backup_failed.log
 		fi
 	
 		rm -f sqldump.out sqldump.err
@@ -74,9 +74,9 @@ main(){
 
 del(){
 	# 删除rmDay天前的文件,i为保留的份数，d为天数
-	declare -i i=0
+	declare -i i=-1
 	declare -i d=0
-	while [ $i != $rmDay ] 
+	while [ $i < $rmDay ] 
 	do
 		ls $db_per_day_savePath/dbBackup/$dbname/dbBackupPerDay/|grep $(date +%Y-%m-%d -d '-'$d'day')
 		if [ $? == 0 ];then
@@ -85,21 +85,28 @@ del(){
 		d+=1
 		if [ $d -ge 30 ];then
 			echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname cannot found old db backup in 1 month" | tee $db_logs/logs/mysql_backup_failed.log
-			exit 1
+			return 1
 		fi
 	done
 	# 删除本地旧备份
 	find $db_per_day_savePath/dbBackup/$dbname/dbBackupPerDay/ -mtime +$d -type f -name $dbname*.sql.gz -delete
 	find $db_per_day_savePath/dbBackup/$dbname/dbBackupPerDay/ -mtime +$d -type f -name '$dbname*.sql.gz' | grep gz
 	if [ $? == 0 ]; then
-		echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname local old db clean failed" | tee $db_logs/logs/mysql_backup_failed.log
+		echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname local old db clean failed" | tee -a $db_logs/logs/mysql_backup_failed.log
 	fi
 	# 删除异机旧备份
 	if [ ${remote_backup} == 1 ];then
-		ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "find $db_per_day_savePath/dbBackup/$dbname/dbBackupPerDay/ -mtime +$d -type f -name $dbname*.sql.gz -delete"
-		ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "find $db_per_day_savePath/dbBackup/$dbname/dbBackupPerDay/ -mtime +$d -type f -name '$dbname*.sql.gz'" | grep gz
+		ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "uname -a"
+		if [ $? == 0 ];then
+			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "find $db_per_day_savePath/dbBackup/$dbname/dbBackupPerDay/ -mtime +$d -type f -name $dbname*.sql.gz -delete"
+			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "find $db_per_day_savePath/dbBackup/$dbname/dbBackupPerDay/ -mtime +$d -type f -name '$dbname*.sql.gz'" | grep gz
+		else
+			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "(Get-ChildItem -path ${remote_path} -filter $dbname*.sql.gz|where {\$_.LastWriteTime -le (get-date).adddays($(expr 0 - ${rmDay} - 1)) -and \$_ -is [System.IO.FileInfo]}).fullname|Remove-Item"
+			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "((Get-ChildItem ${remote_path} -filter $dbname*.sql.gz).LastWriteTime).AddDays($(expr 0 - ${rmDay} - 1))"
+		fi
+
 		if [ $? == 0 ]; then
-			echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname remote old db clean failed" | tee $db_logs/logs/mysql_backup_failed.log
+			echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname remote old db clean failed" | tee -a $db_logs/logs/mysql_backup_failed.log
 		fi
 	fi
 	unset i d
