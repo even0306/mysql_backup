@@ -38,9 +38,10 @@ main(){
 		fileName=${dbname}_${db_label}_$date
 		if [ ${dbname} == "--all-databases" ];then
 			fileName=allDatabases_${db_label}_$date
+			filePath=allDatabases
 		fi
 
-		mkdir -p $db_per_day_savePath/dbBackup/${fileName}/dbBackupPerDay/
+		mkdir -p $db_per_day_savePath/dbBackup/${filePath}/dbBackupPerDay/
 		mkdir -p $db_logs/logs
 		touch $db_logs/logs/mysql_backup_access.log
 		touch $db_logs/logs/mysql_backup_failed.log
@@ -58,10 +59,10 @@ main(){
 		fi
 
 		if [ -s sqldump.out ]; then
-			cat sqldump.out | gzip > $db_per_day_savePath/dbBackup/${fileName}/dbBackupPerDay/${fileName}.sql.gz 2>> $db_logs/logs/mysql_backup_failed.log
+			cat sqldump.out | gzip > $db_per_day_savePath/dbBackup/${filePath}/dbBackupPerDay/${fileName}.sql.gz 2>> $db_logs/logs/mysql_backup_failed.log
 		fi
 
-		ls $db_per_day_savePath/dbBackup/${fileName}/dbBackupPerDay/|grep $date
+		ls $db_per_day_savePath/dbBackup/${filePath}/dbBackupPerDay/|grep $date
 		if [ $? == 0 ]; then
 			if [ ${remote_backup} == 1 ]; then
 				sendToOther
@@ -83,7 +84,7 @@ del(){
 	declare -i d=0
 	while [ $i != $rmDay ] 
 	do
-		ls $db_per_day_savePath/dbBackup/${fileName}/dbBackupPerDay/|grep $(date +%Y-%m-%d -d '-'$d'day')
+		ls $db_per_day_savePath/dbBackup/${filePath}/dbBackupPerDay/|grep $(date +%Y-%m-%d -d '-'$d'day')
 		if [ $? == 0 ];then
 			i+=1
 		fi
@@ -94,8 +95,8 @@ del(){
 		fi
 	done
 	# 删除本地旧备份
-	find $db_per_day_savePath/dbBackup/${fileName}/dbBackupPerDay/ -mtime +$d -type f -name ${fileName}*.sql.gz -delete
-	find $db_per_day_savePath/dbBackup/${fileName}/dbBackupPerDay/ -mtime +$d -type f -name ${fileName}*.sql.gz
+	find $db_per_day_savePath/dbBackup/${filePath}/dbBackupPerDay/ -mtime +$d -type f -name ${fileName}*.sql.gz -delete
+	find $db_per_day_savePath/dbBackup/${filePath}/dbBackupPerDay/ -mtime +$d -type f -name ${fileName}*.sql.gz
 	if [ $? == 0 ]; then
 		echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname local old db clean failed" | tee -a $db_logs/logs/mysql_backup_failed.log
 	fi
@@ -118,7 +119,7 @@ del(){
 }
 
 sendToOther(){
-	scp -i ${remote_key} -P ${remote_port} $db_per_day_savePath/dbBackup/${fileName}/dbBackupPerDay/${fileName}.sql.gz ${remote_user}@${remote_host}:${remote_path}
+	scp -i ${remote_key} -P ${remote_port} $db_per_day_savePath/dbBackup/${filePath}/dbBackupPerDay/${fileName}.sql.gz ${remote_user}@${remote_host}:${remote_path}
 }
 
 main
