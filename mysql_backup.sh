@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # editer: even
-# version: 1.1.0 release
+# version: 1.1.1 release
 
 # 修改需要备份的所有库名(空格分隔，库名包在单引号内),想备份所有数据库使用'--all-databases'
 db_name=('--all-databases')
