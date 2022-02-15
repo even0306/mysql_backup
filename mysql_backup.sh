@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # editer: even
-# version: 1.1.1 release
+# version: 1.1.2 release
 
 # 修改需要备份的所有库名(空格分隔，库名包在单引号内),想备份所有数据库使用'--all-databases'
 db_name=('--all-databases')
@@ -46,7 +46,7 @@ main(){
 		touch $db_logs/logs/mysql_backup_access.log
 		touch $db_logs/logs/mysql_backup_failed.log
 
-		echo 'do backup...'$fileName
+		echo 'do backup...'${dbname}
 
 		$mysqldumpPath/mysqldump -h$db_host -P$db_port -u$db_user -p$db_pwd -R -E --triggers $dbname > sqldump.out 2> sqldump.err
 
@@ -90,7 +90,7 @@ del(){
 		fi
 		d+=1
 		if [ $d -ge 30 ];then
-			echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname cannot found old db backup in 1 month" | tee $db_logs/logs/mysql_backup_failed.log
+			echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname cannot found old db backup in 1 month" | tee -a $db_logs/logs/mysql_backup_failed.log
 			return 1
 		fi
 	done
