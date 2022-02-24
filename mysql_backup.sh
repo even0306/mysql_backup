@@ -35,18 +35,19 @@ db_logs=/root/mysql_backup
 main(){ 
 	for dbname in ${db_name[@]}; do
 		date=$(date +%Y-%m-%d_%H%M%S)
-		fileName=${dbname}_${db_label}_$date
+		fileNameNoDate=${dbname}_${db_label}
 		if [ ${dbname} == "--all-databases" ];then
-			fileName=allDatabases_${db_label}_$date
+			fileNameNoDate=allDatabases_${db_label}
 			filePath=allDatabases
 		fi
+		fileName=${fileNameNoDate}_${date}
 
 		mkdir -p $db_per_day_savePath/dbBackup/${filePath}/dbBackupPerDay/
 		mkdir -p $db_logs/logs
 		touch $db_logs/logs/mysql_backup_access.log
 		touch $db_logs/logs/mysql_backup_failed.log
 
-		echo 'do backup...'${dbname}
+		echo 'do backup...'$fileName
 
 		$mysqldumpPath/mysqldump -h$db_host -P$db_port -u$db_user -p$db_pwd -R -E --triggers $dbname > sqldump.out 2> sqldump.err
 
@@ -90,28 +91,28 @@ del(){
 		fi
 		d+=1
 		if [ $d -ge 30 ];then
-			echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname cannot found old db backup in 1 month" | tee -a $db_logs/logs/mysql_backup_failed.log
+			echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname cannot found old db backup in 1 month" | tee $db_logs/logs/mysql_backup_failed.log
 			return 1
 		fi
 	done
 	# 删除本地旧备份
-	find $db_per_day_savePath/dbBackup/${filePath}/dbBackupPerDay/ -mtime +$d -type f -name ${fileName}*.sql.gz -delete
-	find $db_per_day_savePath/dbBackup/${filePath}/dbBackupPerDay/ -mtime +$d -type f -name ${fileName}*.sql.gz
-	if [ $? == 0 ]; then
+	find $db_per_day_savePath/dbBackup/${filePath}/dbBackupPerDay/ -mtime +$d -type f -name ${fileNameNoDate}*.sql.gz -delete
+	isTrue=$(find $db_per_day_savePath/dbBackup/${filePath}/dbBackupPerDay/ -mtime +$d -type f -name ${fileNameNoDate}*.sql.gz)
+	if [ ! -z ${isTrue} ]; then
 		echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname local old db clean failed" | tee -a $db_logs/logs/mysql_backup_failed.log
 	fi
 	# 删除异机旧备份
 	if [ ${remote_backup} == 1 ];then
 		ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "uname -a"
 		if [ $? == 0 ];then
-			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "find ${remote_path} -mtime +$d -type f -name ${fileName}*.sql.gz -delete" 2>> $db_logs/logs/mysql_backup_failed.log
-			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "find ${remote_path} -mtime +$d -type f -name ${fileName}*.sql.gz" 2>> $db_logs/logs/mysql_backup_failed.log
+			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "find ${remote_path} -mtime +$d -type f -name ${fileNameNoDate}*.sql.gz -delete" 2>> $db_logs/logs/mysql_backup_failed.log
+			isTrue=$(ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "find ${remote_path} -mtime +$d -type f -name ${fileNameNoDate}*.sql.gz")
 		else
-			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "(Get-ChildItem -path ${remote_path} -filter $dbname*.sql.gz|where {\$_.LastWriteTime -le (get-date).adddays($(expr 0 - ${rmDay} - 1)) -and \$_ -is [System.IO.FileInfo]}).fullname|Remove-Item" 2>> $db_logs/logs/mysql_backup_failed.log
-			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "((Get-ChildItem ${remote_path} -filter $dbname*.sql.gz).LastWriteTime).AddDays($(expr 0 - ${rmDay} - 1))" 2>> $db_logs/logs/mysql_backup_failed.log
+			ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "(Get-ChildItem -path ${remote_path} -filter ${fileNameNoDate}*.sql.gz|where {\$_.LastWriteTime -le (get-date).adddays($(expr 0 - ${rmDay} - 1)) -and \$_ -is [System.IO.FileInfo]}).fullname|Remove-Item" 2>> $db_logs/logs/mysql_backup_failed.log
+			isTrue=$(ssh -i ${remote_key} -p ${remote_port} ${remote_user}@${remote_host} "((Get-ChildItem ${remote_path} -filter ${fileNameNoDate}*.sql.gz).LastWriteTime).AddDays($(expr 0 - ${rmDay} - 1))")
 		fi
 
-		if [ $? == 0 ]; then
+		if [ ! -z ${isTrue} ]; then
 			echo "$(date '+%Y-%m-%d %H:%M:%y') $dbname remote old db clean failed" | tee -a $db_logs/logs/mysql_backup_failed.log
 		fi
 	fi
@@ -119,7 +120,7 @@ del(){
 }
 
 sendToOther(){
-	scp -i ${remote_key} -P ${remote_port} $db_per_day_savePath/dbBackup/${filePath}/dbBackupPerDay/${fileName}.sql.gz ${remote_user}@${remote_host}:${remote_path}
+	scp -i ${remote_key} -P ${remote_port} $db_per_day_savePath/dbBackup/${filePath}/dbBackupPerDay/${fileName}.sql.gz ${remote_user}@${remote_host}:${remote_path} 2>> $db_logs/logs/mysql_backup_failed.log
 }
 
 main
