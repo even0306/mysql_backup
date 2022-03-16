@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # editer: even
-# version: 1.2.0 release
+# version: 1.2.1 release
 
 # 修改需要筛选的库名。在该目录下创建dbs.conf文件，里面一行一条库名
 DB_BACKUP_FILE = .
@@ -102,6 +102,7 @@ function is_linux(){
 		return 0
 	else
 		return 1
+	fi
 }
 
 function del(){
