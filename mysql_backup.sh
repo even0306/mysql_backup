@@ -36,7 +36,12 @@ DB_LOGS = '/root/mysql_backup/logs/'
 
 
 function main(){ 
-	DBS=$(/usr/bin/mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASSWORD} -Bse "show databases"|grep -v "information_schema" |grep -v "performance_schema"|grep -v "mysql"| grep -v "sys")
+	DBS=$(/usr/bin/mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASSWORD} -Bse "show databases" \
+	 | grep -v "information_schema" \
+	 | grep -v "performance_schema" \
+	 | grep -v "mysql" \
+	 | grep -v "sys" \
+	 )
 
 	for dbname in ${DB_NAME[@]}; do
 		DATE = $(date +%Y-%m-%d_%H%M%S)
@@ -80,6 +85,14 @@ function main(){
 	exit 0
 }
 
+function is_linux(){
+	ssh -i ${REMOTE_KEY} -p ${REMOTE_PORT} ${REMOTE_USER}@${REMOTE_HOST} "uname -a"
+	if [ $? == 0 ]; then
+		return true
+	else
+		return false
+}
+
 function del(){
 	# 删除SAVE_DAY天前的文件,i为保留的份数，d为天数
 	declare -i i = 1
@@ -104,8 +117,8 @@ function del(){
 	fi
 	# 删除异机旧备份
 	if [ ${REMOTE_BACKUP} == 1 ];then
-		ssh -i ${REMOTE_KEY} -p ${REMOTE_PORT} ${REMOTE_USER}@${REMOTE_HOST} "uname -a"
-		if [ $? == 0 ];then
+		is_linux
+		if [ $? is true ];then
 			ssh -i ${REMOTE_KEY} -p ${REMOTE_PORT} ${REMOTE_USER}@${REMOTE_HOST} "find ${REMOTE_PATH} -mtime +${d} -type f -name ${FILENAME_NO_DATE}*.sql.gz -delete" 2>> $DB_LOGS/mysql_backup_failed.log
 			is_true = $(ssh -i ${REMOTE_KEY} -p ${REMOTE_PORT} ${REMOTE_USER}@${REMOTE_HOST} "find ${REMOTE_PATH} -mtime +${d} -type f -name ${FILENAME_NO_DATE}*.sql.gz")
 		else
@@ -121,7 +134,13 @@ function del(){
 }
 
 function send_to_other(){
-	scp -i ${REMOTE_KEY} -P ${REMOTE_PORT} ${DB_SAVE_PATH}/${dbname}/${FILENAME}.sql.gz ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH} 2>> ${DB_LOGS}/mysql_backup_failed.log
+	is_linux
+	if [ $? == 0 ]; then
+		ssh -i ${REMOTE_KEY} -P ${REMOTE_PORT} ${REMOTE_USER}@${REMOTE_HOST} "mkdir -p ${REMOTE_PATH}/${dbname}"
+	else
+	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+		ssh -i ${REMOTE_KEY} -P ${REMOTE_PORT} ${REMOTE_USER}@${REMOTE_HOST} "mkdir -p ${REMOTE_PATH}/${dbname}"
+	scp -r -i ${REMOTE_KEY} -P ${REMOTE_PORT} ${DB_SAVE_PATH}/${dbname}/${FILENAME}.sql.gz ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}/${dbname}/ 2>> ${DB_LOGS}/mysql_backup_failed.log
 }
 
 main
