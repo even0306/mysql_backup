@@ -57,7 +57,7 @@ function main(){
 	for dbname in ${DBS[@]}; do
 		DATE=$(date +%Y-%m-%d_%H%M%S)
 		FILENAME_NO_DATE=${dbname}_${DB_LABEL}
-		FILENAME=${FILENAME_NO_DATE}_${date}
+		FILENAME=${FILENAME_NO_DATE}_${DATE}
 
 		mkdir -p ${DB_SAVE_PATH}/${dbname}
 		mkdir -p ${DB_LOGS}
