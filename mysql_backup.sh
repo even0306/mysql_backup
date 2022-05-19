@@ -120,7 +120,7 @@ function del(){
 		fi
 		d+=1
 		if [ ${d} -ge 30 ];then
-			echo "$(date '+%Y-%m-%d %H:%M:%y') ${d}bname cannot found old db backup in 1 month" | tee ${DB_LOGS}/mysql_backup_failed.log
+			echo "$(date '+%Y-%m-%d %H:%M:%y') ${d}bname cannot found old db backup in 1 month" | tee -a ${DB_LOGS}/mysql_backup_failed.log
 			return 1
 		fi
 	done
