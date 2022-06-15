@@ -1,4 +1,5 @@
 # mysql_backup
+
 mysql backup shell script
 
 * 可以对mysql数据库进行备份（使用mysqldump备份，会进行压缩）
