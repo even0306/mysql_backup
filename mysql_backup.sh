@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # editer: even
-# version: 1.2.1 release
+# version: 1.2.2 release
 
 # 修改需要筛选的库名。在该目录下创建dbs.conf文件，里面一行一条库名。如存在一行写all，则会忽视他库，直接备份所有库
-DB_BACKUP_FILE=.
+DB_BACKUP_FILE='/root/mysql_backup/db_data/'
 
 # 筛选方式，1为正向筛选，0为反向筛选
 FILTER_METHOD=1
@@ -43,9 +43,9 @@ function main(){
 			DBS=('all')
 		else
 			if [ ${FILTER_METHOD} == 1 ]; then
-				DBS=$(/usr/bin/mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASSWORD} -Bse "show databases" | grep -f ${DB_BACKUP_FILE}/dbs.conf)
+				DBS=$(/usr/bin/mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASSWORD} -Bse "show databases" | grep -w -f ${DB_BACKUP_FILE}/dbs.conf)
 			elif [ ${FILTER_METHOD} == 0 ]; then
-				DBS=$(/usr/bin/mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASSWORD} -Bse "show databases" | grep -v -f ${DB_BACKUP_FILE}/dbs.conf)
+				DBS=$(/usr/bin/mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASSWORD} -Bse "show databases" | grep -w -v -f ${DB_BACKUP_FILE}/dbs.conf)
 			else
 				echo "${FILTER_METHOD} 参数错误"
 			fi
